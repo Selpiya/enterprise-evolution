@@ -1,0 +1,23 @@
+# Node dependencies
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# PHP dependencies
+vendor/
+
+# PHPUnit / cache
+.phpunit.result.cache
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# AI assistant instruction files
+**/AGENTS.md
+**/CLAUDE.md

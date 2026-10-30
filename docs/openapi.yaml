@@ -1,0 +1,191 @@
+openapi: 3.1.0
+
+info:
+  title: Affiliate Service API
+  version: 1.0.0
+  description: >
+    API untuk mencatat dan mengambil data transaksi affiliate pada
+    studi kasus Bintang Agency/Kranjang Community.
+  contact:
+    name: Enterprise Evolution
+
+servers:
+  - url: http://localhost
+    description: Local development server
+
+tags:
+  - name: Transaksi Affiliate
+    description: Operasi untuk mengelola transaksi affiliate
+
+paths:
+  /api/v1/transaksi-affiliate:
+    post:
+      tags:
+        - Transaksi Affiliate
+      summary: Mencatat transaksi affiliate
+      description: >
+        Mencatat transaksi affiliate baru yang berasal dari aktivitas
+        creator pada suatu campaign.
+      operationId: createTransaksiAffiliate
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuatTransaksiAffiliate'
+
+      responses:
+        '201':
+          description: Transaksi affiliate berhasil dicatat
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TransaksiAffiliate'
+
+        '422':
+          description: Data transaksi tidak valid
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+
+  /api/v1/transaksi-affiliate/{transaction_id}:
+    get:
+      tags:
+        - Transaksi Affiliate
+      summary: Mengambil detail transaksi affiliate
+      description: >
+        Mengambil detail satu transaksi affiliate berdasarkan
+        transaction_id.
+      operationId: getTransaksiAffiliate
+
+      parameters:
+        - name: transaction_id
+          in: path
+          required: true
+          description: ID unik transaksi affiliate
+          schema:
+            type: string
+          example: TRX-0001
+
+      responses:
+        '200':
+          description: Detail transaksi affiliate ditemukan
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - data
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TransaksiAffiliate'
+
+        '404':
+          description: Transaksi affiliate tidak ditemukan
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+components:
+  schemas:
+    BuatTransaksiAffiliate:
+      type: object
+      required:
+        - creator_id
+        - campaign_id
+        - nominal_transaksi
+        - nmv
+      properties:
+        creator_id:
+          type: string
+          maxLength: 100
+          example: CRT-001
+        campaign_id:
+          type: string
+          maxLength: 100
+          example: CMP-001
+        nominal_transaksi:
+          type: integer
+          minimum: 0
+          example: 250000
+        nmv:
+          type: integer
+          minimum: 0
+          example: 250000
+
+    TransaksiAffiliate:
+      type: object
+      required:
+        - transaction_id
+        - creator_id
+        - campaign_id
+        - nominal_transaksi
+        - nmv
+        - occurred_at
+      properties:
+        transaction_id:
+          type: string
+          example: TRX-0001
+        creator_id:
+          type: string
+          example: CRT-001
+        campaign_id:
+          type: string
+          example: CMP-001
+        nominal_transaksi:
+          type: integer
+          minimum: 0
+          example: 250000
+        nmv:
+          type: integer
+          minimum: 0
+          example: 250000
+        occurred_at:
+          type: string
+          format: date-time
+          example: '2026-10-22T14:00:00+07:00'
+
+    ProblemDetails:
+      type: object
+      required:
+        - type
+        - title
+        - status
+        - detail
+      properties:
+        type:
+          type: string
+          format: uri
+          example: https://example.com/problems/not-found
+        title:
+          type: string
+          example: Not Found
+        status:
+          type: integer
+          example: 404
+        detail:
+          type: string
+          example: Transaksi affiliate tidak ditemukan.
+
+    ValidationProblemDetails:
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+              example:
+                creator_id:
+                  - The creator id field is required.
