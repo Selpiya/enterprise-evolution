@@ -730,7 +730,6 @@ Pembagian tugas kelompok pada Checkpoint 1:
 | Muhammad Mukhlis Rifdulloh  | Implementasi RabbitMQ, publisher, exchange, queue, dan event contract                |
 | Risma Marisa                | Monitoring Service, consumer RabbitMQ, pengujian idempotensi, dan dokumentasi proyek |
 
-Seluruh anggota tetap perlu memahami keseluruhan arsitektur, jalur synchronous dan asynchronous, kontrak API, serta implementasi service karena setiap anggota dapat diminta menjelaskan bagian proyek pada saat demonstrasi.
 
 ---
 
