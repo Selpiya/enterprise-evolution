@@ -696,69 +696,177 @@ sehingga data dengan `transaction_id` yang sama tidak menghasilkan baris baru.
 
 # 20. Alur Demo
 
-Urutan demo teknis dapat dilakukan sebagai berikut.
+Selesaikan pemasangan dependency, konfigurasi environment, application key, dan migration pada kedua layanan sesuai bagian 13 dan 14 sebelum menjalankan demo.
 
-### 1. Jalankan Affiliate Service
+Gunakan tiga terminal agar consumer tetap berjalan selama pengujian.
+
+## 20.1 Terminal 1: Menjalankan Layanan
+
+Jalankan Affiliate Service:
 
 ```bash
 cd ~/enterprise-evolution/affiliate-service
 ./vendor/bin/sail up -d
+./vendor/bin/sail ps
 ```
 
-### 2. Jalankan Monitoring Service
+Jalankan Monitoring Service:
 
 ```bash
 cd ~/enterprise-evolution/monitoring-service
 ./vendor/bin/sail up -d
+./vendor/bin/sail ps
 ```
 
-### 3. Jalankan Consumer
+Pastikan aplikasi berjalan, kedua MySQL sudah healthy, dan RabbitMQ sudah healthy.
+
+## 20.2 Terminal 2: Menjalankan Consumer
+
+Buka terminal baru:
 
 ```bash
+cd ~/enterprise-evolution/monitoring-service
 ./vendor/bin/sail artisan monitoring:konsumsi-transaksi-affiliate
 ```
 
-### 4. Kirim POST ke Affiliate Service
+Biarkan terminal ini tetap berjalan. Consumer akan menunggu pesan dari queue `monitoring.transaksi-affiliate`.
+
+## 20.3 Terminal 3: Menguji Pencatatan Transaksi
+
+Kirim request valid:
 
 ```bash
-curl -X POST http://localhost/api/v1/transaksi-affiliate \
+curl -i -X POST http://localhost/api/v1/transaksi-affiliate \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -d '{
     "creator_id": "CRT-DEMO",
     "campaign_id": "CMP-DEMO",
-    "nominal_transaksi": 500000,
-    "nmv": 500000
+    "nominal_transaksi": 250000,
+    "nmv": 250000
   }'
 ```
 
-### 5. Perhatikan Terminal Consumer
+Hasil yang diharapkan:
 
-Monitoring Service akan menampilkan bahwa transaksi telah diterima dan disimpan.
+- HTTP status `201 Created`.
+- Response memuat objek `data`.
+- Objek tersebut berisi `transaction_id`, `creator_id`, `campaign_id`, `nominal_transaksi`, `nmv`, dan `occurred_at`.
 
-### 6. Periksa RabbitMQ
+Catat `transaction_id` dari response untuk pemeriksaan berikutnya.
 
-Buka:
+## 20.4 Menguji Pengambilan Detail dan Respons Galat
 
-```text
-http://localhost:15672
-```
+Ganti `ID_DARI_RESPONSE` dengan transaction_id dari POST yang berhasil.
 
-Periksa exchange, routing key, queue, dan consumer.
-
-### 7. Jalankan Test
-
-Affiliate Service:
+Mengambil detail transaksi:
 
 ```bash
+curl -i \
+  -H "Accept: application/json" \
+  http://localhost/api/v1/transaksi-affiliate/ID_DARI_RESPONSE
+```
+
+Hasil yang diharapkan adalah `200 OK` dengan data transaksi yang sama.
+
+Menguji transaksi yang tidak ditemukan:
+
+```bash
+curl -i \
+  -H "Accept: application/json" \
+  http://localhost/api/v1/transaksi-affiliate/TRX-TIDAKADA
+```
+
+Hasil yang diharapkan:
+
+- HTTP status `404`.
+- Content-Type `application/problem+json`.
+- Body memuat `type`, `title`, `status`, dan `detail`.
+
+Menguji validasi dengan menghilangkan creator_id:
+
+```bash
+curl -i -X POST http://localhost/api/v1/transaksi-affiliate \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "campaign_id": "CMP-DEMO",
+    "nominal_transaksi": 250000,
+    "nmv": 250000
+  }'
+```
+
+Hasil yang diharapkan:
+
+- HTTP status `422`.
+- Content-Type `application/problem+json`.
+- Body memuat Problem Details serta `errors.creator_id`.
+
+## 20.5 Memeriksa Consumer dan Database Monitoring
+
+Perhatikan Terminal 2. Consumer akan menampilkan pesan `Diterima:` beserta payload transaksi.
+
+Pada Terminal 3, periksa database Monitoring:
+
+```bash
+cd ~/enterprise-evolution/monitoring-service
+./vendor/bin/sail artisan tinker --execute='dump(App\Models\TransaksiAffiliate::where("transaction_id", "ID_DARI_RESPONSE")->first()?->toArray());'
+```
+
+Ganti `ID_DARI_RESPONSE` dengan ID transaksi yang diperoleh dari POST.
+
+Pastikan transaction_id dan data transaksi sesuai antara:
+
+1. Response POST Affiliate.
+2. Payload pada log consumer.
+3. Data pada database Monitoring.
+
+Pemeriksaan RabbitMQ Management UI dijelaskan pada bagian 16.
+
+## 20.6 Menjalankan Test Kedua Layanan
+
+Jalankan dari Terminal 3 agar consumer pada Terminal 2 tetap aktif.
+
+Test Affiliate:
+
+```bash
+cd ~/enterprise-evolution/affiliate-service
 ./vendor/bin/sail artisan test
 ```
 
-Monitoring Service:
+Test Monitoring:
 
 ```bash
+cd ~/enterprise-evolution/monitoring-service
 ./vendor/bin/sail artisan test
 ```
+
+Hasil pengujian yang sebelumnya diperoleh:
+
+| Layanan | Test lulus | Assertions |
+| --- | --- | --- |
+| Affiliate Service | 6 | 25 |
+| Monitoring Service | 4 | 4 |
+
+Masing-masing layanan mencakup dua test bawaan Laravel.
+
+Pengujian khusus Affiliate mencakup pencatatan transaksi, pengambilan detail, respons 404, dan validasi 422.
+
+Pengujian khusus Monitoring memeriksa fungsi penyimpanan secara langsung serta memastikan pengulangan payload identik tidak menambah baris duplikat.
+
+RabbitMQ harus aktif saat menjalankan test Affiliate karena pengujian pencatatan saat ini turut menerbitkan event ke broker.
+
+## 20.7 Validasi Kontrak OpenAPI
+
+Jalankan dari root repository:
+
+```bash
+cd ~/enterprise-evolution
+npm ci
+./node_modules/.bin/spectral lint docs/openapi.yaml --ruleset .spectral.yaml
+```
+
+Target pemeriksaan adalah tidak ada hasil dengan severity `error`.
 
 ---
 
