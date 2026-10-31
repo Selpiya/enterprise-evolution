@@ -384,24 +384,67 @@ Contoh pesan yang diterbitkan:
 
 ---
 
-# 12. Requirement
+# 12. Persyaratan dan Clone Repository
 
-Lingkungan pengembangan yang digunakan:
+## 12.1 Persyaratan Lingkungan
 
-* WSL/Linux
-* Docker Desktop
-* PHP
-* Composer
-* Node.js
-* npm
-* Laravel
-* Laravel Sail
-* MySQL
-* RabbitMQ
-* php-amqplib/php-amqplib
-* Spectral CLI
+Proyek dijalankan menggunakan Laravel Sail. Untuk Windows, gunakan terminal WSL2 dengan integrasi Docker Desktop yang aktif. Linux dan macOS dapat menggunakan Docker yang mendukung Docker Compose.
 
-Pastikan Docker Desktop aktif sebelum menjalankan Laravel Sail.
+Siapkan perangkat lunak berikut:
+
+| Perangkat lunak | Kebutuhan |
+| --- | --- |
+| Git | Untuk melakukan clone repository |
+| Docker dan Docker Compose v2 | Untuk menjalankan container aplikasi, MySQL, dan RabbitMQ |
+| PHP CLI | Direkomendasikan PHP 8.5; dependency pada composer.lock membutuhkan minimal PHP 8.4.1 |
+| Composer | Composer 2 untuk memasang dependency PHP |
+| Node.js | Direkomendasikan Node.js 24; dependency Spectral mendukung Node.js 22 atau versi 24 ke atas |
+| npm | Untuk memasang dan menjalankan Spectral |
+
+PHP CLI dan Composer diperlukan pada terminal tempat perintah `composer install` dijalankan. Versi PHP dalam container Sail proyek ini adalah PHP 8.5.
+
+Laravel, Laravel Sail, dan php-amqplib dipasang melalui Composer. MySQL dan RabbitMQ disediakan melalui container Docker.
+
+## 12.2 Memeriksa Perangkat Lunak
+
+Jalankan pemeriksaan berikut pada terminal yang akan digunakan:
+
+```bash
+git --version
+docker --version
+docker compose version
+php --version
+composer --version
+node --version
+npm --version
+```
+
+Pastikan Docker sudah berjalan sebelum melanjutkan instalasi layanan.
+
+## 12.3 Clone Repository
+
+Untuk instalasi baru:
+
+```bash
+cd ~
+git clone https://github.com/Selpiya/enterprise-evolution.git
+cd enterprise-evolution
+```
+
+Panduan berikut mengasumsikan repository berada pada folder:
+
+```text
+~/enterprise-evolution
+```
+
+Jika repository disimpan pada lokasi lain, sesuaikan seluruh perintah `cd` dengan lokasi tersebut.
+
+Setelah clone selesai:
+
+1. Ikuti bagian 13 untuk menyiapkan Affiliate Service.
+2. Ikuti bagian 14 untuk menyiapkan Monitoring Service.
+3. Ikuti bagian 20 untuk memeriksa API, consumer, database, dan hasil pengujian.
+4. Jalankan validasi Spectral dari root repository sesuai bagian 7.
 
 ---
 
