@@ -495,6 +495,15 @@ Jalankan container:
 ```bash
 ./vendor/bin/sail up -d
 ```
+Periksa status container:
+
+```bash
+./vendor/bin/sail ps
+```
+
+Pastikan container aplikasi berstatus berjalan, serta MySQL dan RabbitMQ sudah berstatus `healthy`.
+
+Pada startup pertama, proses inisialisasi dapat membutuhkan waktu. Jika status masih `starting`, tunggu lalu jalankan kembali pemeriksaan status sebelum melanjutkan migration.
 
 Generate application key jika diperlukan:
 
@@ -560,6 +569,13 @@ Jalankan service:
 ```bash
 ./vendor/bin/sail up -d
 ```
+Periksa status container:
+
+```bash
+./vendor/bin/sail ps
+```
+
+Pastikan container aplikasi berstatus berjalan dan MySQL sudah berstatus `healthy` sebelum melanjutkan migration.
 
 Generate key jika diperlukan:
 
@@ -599,33 +615,83 @@ Ketika Affiliate Service menerbitkan event, Monitoring Service akan menerima pes
 
 ---
 
-# 16. RabbitMQ Management UI
+# 16. Port Layanan dan Pemeriksaan RabbitMQ
 
-RabbitMQ Management dapat dibuka melalui:
+## 16.1 Port Layanan
+
+Konfigurasi default menggunakan port host berikut:
+
+| Komponen | Port host |
+| --- | --- |
+| Affiliate Service HTTP | 80 |
+| Monitoring Service HTTP | 8081 |
+| MySQL Affiliate | 3306 |
+| MySQL Monitoring | 3307 |
+| RabbitMQ AMQP | 5672 |
+| RabbitMQ Management UI | 15672 |
+
+Pastikan port tersebut tersedia sebelum menjalankan layanan.
+
+Port database di dalam container tetap `3306`. Nilai `3307` merupakan port host untuk mengakses MySQL Monitoring, sehingga konfigurasi `DB_PORT` di dalam aplikasi Monitoring tetap `3306`.
+
+## 16.2 Membuka RabbitMQ Management UI
+
+Buka:
 
 ```text
 http://localhost:15672
 ```
 
-Login development:
+Kredensial development sesuai `.env.example`:
 
 ```text
 Username: affiliate
 Password: pw123
 ```
 
-Komponen yang dapat diperiksa:
+## 16.3 Memeriksa Exchange, Binding, Queue, dan Consumer
 
-```text
-Exchange:
-affiliate.events
+Komponen yang digunakan:
 
-Routing Key:
-affiliate.transaksi.tercatat
+| Komponen | Nilai |
+| --- | --- |
+| Exchange | affiliate.events |
+| Exchange type | topic |
+| Routing key | affiliate.transaksi.tercatat |
+| Queue | monitoring.transaksi-affiliate |
+| Publisher | Affiliate Service |
+| Consumer | Monitoring Service |
 
-Queue:
-monitoring.transaksi-affiliate
+Lakukan pemeriksaan berikut:
+
+1. Jalankan consumer Monitoring sesuai bagian 15.
+2. Kirim transaksi valid melalui API sesuai bagian 20.
+3. Buka menu Exchanges dan pilih `affiliate.events`.
+4. Periksa binding menuju queue `monitoring.transaksi-affiliate` dengan routing key `affiliate.transaksi.tercatat`.
+5. Buka menu Queues and Streams, kemudian pilih queue tersebut.
+6. Periksa consumer yang terhubung serta nilai Ready dan Unacked.
+
+Publisher mendeklarasikan exchange, queue, dan binding saat menerbitkan event. Karena itu, lakukan pengiriman transaksi valid sebelum memeriksa kelengkapan exchange dan binding.
+
+Nilai Ready dan Unacked dapat kembali menjadi nol setelah pesan selesai diproses dan diakui oleh consumer. Cocokkan pemeriksaan broker dengan log consumer dan data pada database Monitoring.
+
+## 16.4 Koneksi RabbitMQ Antarlayanan
+
+Affiliate Service menggunakan:
+
+```env
+RABBITMQ_HOST=rabbitmq
+RABBITMQ_PORT=5672
 ```
+
+Monitoring Service menggunakan:
+
+```env
+RABBITMQ_HOST=host.docker.internal
+RABBITMQ_PORT=5672
+```
+
+Affiliate mengakses RabbitMQ melalui jaringan Compose miliknya. Monitoring menggunakan port RabbitMQ yang dipublikasikan pada host.
 
 ---
 
